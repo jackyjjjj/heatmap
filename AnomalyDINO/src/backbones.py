@@ -1,3 +1,4 @@
+import os
 import cv2
 import torch
 import torchvision.models as models
@@ -93,7 +94,13 @@ class ViTWrapper(VisionTransformerWrapper):
 # DINOv2 Wrapper
 class DINOv2Wrapper(VisionTransformerWrapper):
     def load_model(self):
-        model = torch.hub.load('facebookresearch/dinov2', self.model_name)
+        repo_or_dir = os.environ.get("DINOV2_REPO_OR_DIR", "facebookresearch/dinov2")
+        source = "local" if os.path.isdir(repo_or_dir) else "github"
+        hub_kwargs = {"source": source}
+        if source == "github":
+            # Avoid GitHub API repo validation, which is easy to hit rate limits on.
+            hub_kwargs.update({"trust_repo": True, "skip_validation": True})
+        model = torch.hub.load(repo_or_dir, self.model_name, **hub_kwargs)
         model.eval()
 
         # print(f"Loaded model: {self.model_name}")
