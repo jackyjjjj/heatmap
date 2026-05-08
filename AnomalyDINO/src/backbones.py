@@ -10,11 +10,12 @@ import numpy as np
 
 # Base Wrapper Class
 class VisionTransformerWrapper:
-    def __init__(self, model_name, device, smaller_edge_size=224, half_precision=False):
+    def __init__(self, model_name, device, smaller_edge_size=224, half_precision=False, square_resize=False):
         self.device = device
         self.smaller_edge_size = smaller_edge_size
         self.half_precision = half_precision
         self.model_name = model_name
+        self.square_resize = square_resize
         self.model = self.load_model()
 
     def load_model(self):
@@ -99,8 +100,9 @@ class DINOv2Wrapper(VisionTransformerWrapper):
         # print("Resizing images to", self.smaller_edge_size)
 
         # Set transform for DINOv2
+        resize_size = (self.smaller_edge_size, self.smaller_edge_size) if self.square_resize else self.smaller_edge_size
         self.transform = transforms.Compose([
-            transforms.Resize(size=self.smaller_edge_size, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
+            transforms.Resize(size=resize_size, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
             transforms.ToTensor(),
             transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)), # imagenet defaults
             ])
@@ -174,14 +176,14 @@ class DINOv2Wrapper(VisionTransformerWrapper):
         return mask.squeeze()
 
 
-def get_model(model_name, device, smaller_edge_size=448):
+def get_model(model_name, device, smaller_edge_size=448, square_resize=False):
     print(f"Loading model: {model_name}")
     print(f"Device: {device}")
     print(f"Smaller edge size: {smaller_edge_size}")
 
     if model_name.startswith("vit"):
-        return ViTWrapper(model_name, device, smaller_edge_size)
+        return ViTWrapper(model_name, device, smaller_edge_size, square_resize=square_resize)
     elif model_name.startswith("dinov2"):
-        return DINOv2Wrapper(model_name, device, smaller_edge_size)
+        return DINOv2Wrapper(model_name, device, smaller_edge_size, square_resize=square_resize)
     else:
         raise ValueError(f"Unknown model name: {model_name}")
